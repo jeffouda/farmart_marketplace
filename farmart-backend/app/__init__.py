@@ -9,8 +9,9 @@ Creates Flask app and initializes extensions:
 
 from flask import Flask
 from flask_cors import CORS
-from app.extensions import db, jwt
+from app.extensions import db, jwt, migrate
 from app.config import DevelopmentConfig, ProductionConfig, TestingConfig
+from app.schemas import ma
 
 
 def create_app(config_name="development"):
@@ -36,6 +37,8 @@ def create_app(config_name="development"):
 
     # Initialize extensions with app
     db.init_app(app)
+    migrate.init_app(app, db)  # Initialize Flask-Migrate
+    ma.init_app(app)  # Initialize Marshmallow
     CORS(
         app,
         resources={
@@ -54,7 +57,20 @@ def create_app(config_name="development"):
         # Create database tables
         db.create_all()
 
-        # Import and register blueprints
+        # Import and register RESTful API resources (for future use)
+        try:
+            from app.routes import (
+                auth_api,
+                farmer_api,
+                buyer_api,
+                admin_api,
+                payments_api,
+            )
+            # APIs are available but currently using blueprints for backward compatibility
+        except ImportError:
+            pass
+
+        # Register blueprints for backward compatibility
         from app.routes import auth_bp, farmer_bp, buyer_bp, admin_bp, payments_bp
 
         app.register_blueprint(auth_bp, url_prefix="/api/auth")

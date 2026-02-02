@@ -6,13 +6,16 @@ name = "pypi"
 [packages]
 flask = "*"
 flask-sqlalchemy = "*"
-flask-migrate = "*"
 flask-jwt-extended = "*"
 psycopg2-binary = "*"
 pandas = "*"
 requests = "*"
 flask-cors = "*"
 ipython = "*"
+flask-restful = "*"
+flask-marshmallow = "*"
+marshmallow-sqlalchemy = "*"
+flask-migrate = "*"
 
 [dev-packages]
 
