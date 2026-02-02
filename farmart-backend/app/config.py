@@ -35,14 +35,15 @@ class Config:
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "csv", "xlsx"}
 
+    # Frontend URL for CORS
+    FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
+
 
 class DevelopmentConfig(Config):
     """Development configuration."""
 
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost/farmart_dev"
-    )
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///farmart_dev.db")
 
 
 class ProductionConfig(Config):
@@ -61,7 +62,7 @@ class TestingConfig(Config):
 
     TESTING = True
     SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL", "postgresql://postgres:postgres@localhost/farmart_test"
+        "DATABASE_URL", "sqlite:///farmart_test.db"
     )
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=1)
 
@@ -72,3 +73,14 @@ config = {
     "testing": TestingConfig,
     "default": DevelopmentConfig,
 }
+
+
+def config_by_name(config_name: str):
+    """Get configuration class by name."""
+    config_map = {
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+        "testing": TestingConfig,
+        "default": DevelopmentConfig,
+    }
+    return config_map.get(config_name, DevelopmentConfig)

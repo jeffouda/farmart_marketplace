@@ -51,7 +51,7 @@ const Home = () => {
       {/* Footer */}
       <footer className="bg-gray-800 text-white py-8">
         <div className="max-w-7xl mx-auto px-4 text-center">
-          <p>© 2024 FarmAT. All rights reserved.</p>
+          <p>© 2026 FarmAT. All rights reserved.</p>
         </div>
       </footer>
     </div>
