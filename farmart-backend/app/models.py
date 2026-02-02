@@ -4,11 +4,9 @@ Based on the DBML schema definition
 """
 
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_jwt_extended import create_access_token, create_refresh_token
-
-db = SQLAlchemy()
+from app.extensions import db
 
 
 # Enum-like classes for fixed choices
@@ -479,7 +477,7 @@ class AnalyticsEvent(db.Model):
     session_id = db.Column(db.String(100))
     entity_type = db.Column(db.String(50))
     entity_id = db.Column(db.Integer)
-    metadata = db.Column(db.Text)  # JSON
+    event_metadata = db.Column(db.Text)  # JSON
     ip_address = db.Column(db.String(50))
     user_agent = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
