@@ -8,14 +8,9 @@ Creates Flask app and initializes extensions:
 """
 
 from flask import Flask
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager
 from flask_cors import CORS
-from .config import config_by_name
-
-
-db = SQLAlchemy()
-jwt = JWTManager()
+from app.extensions import db, jwt
+from app.config import DevelopmentConfig, ProductionConfig, TestingConfig
 
 
 def create_app(config_name="development"):
@@ -29,24 +24,43 @@ def create_app(config_name="development"):
         Configured Flask application
     """
     app = Flask(__name__)
-    app.config.from_object(config_by_name[config_name])
 
-    # Initialize extensions
+    # Load configuration
+    config_map = {
+        "development": DevelopmentConfig,
+        "production": ProductionConfig,
+        "testing": TestingConfig,
+        "default": DevelopmentConfig,
+    }
+    app.config.from_object(config_map.get(config_name, DevelopmentConfig)())
+
+    # Initialize extensions with app
     db.init_app(app)
-    CORS(app, resources={r"/api/*": {"origins": app.config["FRONTEND_URL"]}})
+    CORS(
+        app,
+        resources={
+            r"/api/*": {
+                "origins": app.config.get("FRONTEND_URL", "http://localhost:5173")
+            }
+        },
+    )
     jwt.init_app(app)
 
-    # Register blueprints
-    from .routes import auth_bp, farmer_bp, buyer_bp, admin_bp, payments_bp
-
-    app.register_blueprint(auth_bp, url_prefix="/api/auth")
-    app.register_blueprint(farmer_bp, url_prefix="/api/farmer")
-    app.register_blueprint(buyer_bp, url_prefix="/api/buyer")
-    app.register_blueprint(admin_bp, url_prefix="/api/admin")
-    app.register_blueprint(payments_bp, url_prefix="/api/payments")
-
-    # Create database tables
+    # All operations inside app context
     with app.app_context():
+        # Import models to register them with SQLAlchemy
+        from app import models
+
+        # Create database tables
         db.create_all()
+
+        # Import and register blueprints
+        from app.routes import auth_bp, farmer_bp, buyer_bp, admin_bp, payments_bp
+
+        app.register_blueprint(auth_bp, url_prefix="/api/auth")
+        app.register_blueprint(farmer_bp, url_prefix="/api/farmer")
+        app.register_blueprint(buyer_bp, url_prefix="/api/buyer")
+        app.register_blueprint(admin_bp, url_prefix="/api/admin")
+        app.register_blueprint(payments_bp, url_prefix="/api/payments")
 
     return app
