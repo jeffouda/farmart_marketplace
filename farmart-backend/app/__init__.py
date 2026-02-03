@@ -7,9 +7,9 @@ Creates Flask app and initializes extensions:
 - CORS (cross-origin requests)
 """
 
-from flask import Flask, request, after_this_request
+from flask import Flask, request, after_this_request, make_response
 from flask_cors import CORS
-from app.extensions import db, jwt, migrate
+from app.extensions import db, jwt, migrate, limiter
 from app.config import DevelopmentConfig, ProductionConfig, TestingConfig
 from app.schemas import ma
 
@@ -51,6 +51,9 @@ def create_app(config_name="development"):
         },
     )
     jwt.init_app(app)
+    # Initialize Flask-Limiter if available
+    if limiter:
+        limiter.init_app(app)
 
     # Fallback CORS handler for all responses
     @app.after_request
@@ -105,5 +108,8 @@ def create_app(config_name="development"):
         app.register_blueprint(buyer_bp, url_prefix="/api/buyer")
         app.register_blueprint(admin_bp, url_prefix="/api/admin")
         app.register_blueprint(payments_bp, url_prefix="/api/payments")
+
+    # Return app and limiter for use in route modules
+    app.limiter = limiter
 
     return app
