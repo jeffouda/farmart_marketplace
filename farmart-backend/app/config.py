@@ -15,6 +15,14 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
+    # JWT Configuration for API tokens (not using cookies)
+    JWT_TOKEN_LOCATION = ["headers"]
+    JWT_HEADER_NAME = "Authorization"
+    JWT_HEADER_TYPE = "Bearer"
+
+    # Disable CSRF for API tokens (we're using Bearer tokens, not cookies)
+    JWT_COOKIE_CSRF_PROTECT = False
+
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {

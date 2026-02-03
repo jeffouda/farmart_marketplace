@@ -42,6 +42,11 @@ function App() {
           {user?.role === 'farmer' ? <FarmerDash /> : user?.role === 'admin' ? <AdminDash /> : <BuyerDash />}
         </ProtectedRoute>
       } />
+      <Route path="/admin" element={
+        <ProtectedRoute roles={['admin']}>
+          <AdminDash />
+        </ProtectedRoute>
+      } />
       <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
       <Route path="/verification" element={<ProtectedRoute><Verification /></ProtectedRoute>} />
 
