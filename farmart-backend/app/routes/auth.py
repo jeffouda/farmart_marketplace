@@ -35,6 +35,10 @@ class AuthRegister(Resource):
         if User.query.filter_by(email=data["email"]).first():
             return {"error": "Email already registered"}, 400
 
+        # Check if phone number already exists
+        if User.query.filter_by(phone_number=data["phone_number"]).first():
+            return {"error": "Phone number already registered"}, 400
+
         # Create new user
         user = User(
             email=data["email"],
@@ -42,6 +46,7 @@ class AuthRegister(Resource):
             last_name=data["last_name"],
             phone_number=data["phone_number"],
             role=data["role"],
+            is_verified=True,  # Auto-verify for development/demo
         )
         user.set_password(data["password"])
 
