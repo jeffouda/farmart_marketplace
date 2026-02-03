@@ -32,3 +32,4 @@ jwt_config = {
     "JWT_COOKIE_SAMESITE": "Lax",
     "JWT_COOKIE_CSRF_PROTECT": True,
 }
+

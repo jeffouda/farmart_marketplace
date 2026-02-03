@@ -55,6 +55,14 @@ class UserRegisterSchema(ma.Schema):
         required=True, validate=validate.OneOf(["farmer", "buyer", "admin"])
     )
 
+    @validates("email")
+    def validate_email_unique(self, value):
+        """Check if email already exists."""
+        from app.models import User
+
+        if User.query.filter_by(email=value).first():
+            raise ValidationError("Email already registered")
+
 
 class UserLoginSchema(ma.Schema):
     """Schema for user login."""

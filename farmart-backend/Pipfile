@@ -18,7 +18,6 @@ marshmallow-sqlalchemy = "*"
 flask-migrate = "*"
 flask-limiter = "*"
 markupsafe = "*"
-
 [dev-packages]
 
 [requires]

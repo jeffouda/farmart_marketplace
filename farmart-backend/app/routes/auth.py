@@ -67,7 +67,7 @@ class AuthRegister(Resource):
         data["first_name"] = self.strip_html_tags(data.get("first_name", ""))
         data["last_name"] = self.strip_html_tags(data.get("last_name", ""))
 
-        # Check if user already exists (Database-level unique constraint backup)
+        # Check if user already exists
         if User.query.filter_by(email=data["email"]).first():
             return {"error": "Email already registered"}, 400
 
@@ -115,7 +115,6 @@ class AuthLogin(Resource):
 
     def post(self):
         """Login user and return JWT tokens via secure cookies."""
-        # Validate input using marshmallow schema
         try:
             data = user_login_schema.load(request.get_json())
         except Exception as err:
@@ -123,7 +122,7 @@ class AuthLogin(Resource):
 
         user = User.query.filter_by(email=data["email"]).first()
 
-        # Prevent user enumeration: return same message for wrong email or password
+        # Prevent user enumeration
         if not user or not user.check_password(data["password"]):
             return {"error": "Invalid email or password"}, 401
 
@@ -133,7 +132,6 @@ class AuthLogin(Resource):
         access_token = create_access_token(identity=user.id)
         refresh_token = create_refresh_token(identity=user.id)
 
-        # Set JWT tokens as HttpOnly, Secure cookies
         response = make_response(
             {
                 "message": "Login successful",
@@ -156,7 +154,6 @@ class AuthLogout(Resource):
         current_user_id = get_jwt_identity()
         user = User.query.get(current_user_id)
 
-        # Clear JWT cookies
         response = make_response(
             {
                 "message": "Logged out successfully",
@@ -174,10 +171,8 @@ class AuthRefresh(Resource):
 
     @jwt_required(refresh=True)
     def post(self):
-        """Refresh access token."""
         current_user_id = get_jwt_identity()
         access_token = create_access_token(identity=current_user_id)
-
         return {"access_token": access_token}, 200
 
 
@@ -186,7 +181,6 @@ class AuthMe(Resource):
 
     @jwt_required()
     def get(self):
-        """Get current user information."""
         current_user_id = get_jwt_identity()
         user = User.query.get(current_user_id)
 
