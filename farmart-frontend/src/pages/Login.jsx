@@ -9,6 +9,7 @@ const Login = () => {
     password: ''
   });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
@@ -19,12 +20,31 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       const result = await dispatch(login(formData)).unwrap();
-      navigate(result.user.role === 'farmer' ? '/dashboard' : '/dashboard');
+      navigateBasedOnRole(result.user.role);
     } catch (err) {
-      setError(err.message || 'Login failed');
+      setError(err.message || err || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const navigateBasedOnRole = (role) => {
+    switch (role) {
+      case 'farmer':
+        navigate('/dashboard');
+        break;
+      case 'buyer':
+        navigate('/dashboard');
+        break;
+      case 'admin':
+        navigate('/admin');
+        break;
+      default:
+        navigate('/dashboard');
     }
   };
 
@@ -66,9 +86,10 @@ const Login = () => {
 
           <button
             type="submit"
-            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition"
+            disabled={loading}
+            className="w-full bg-green-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-green-700 transition disabled:opacity-50"
           >
-            Login
+            {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
 
