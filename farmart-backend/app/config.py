@@ -15,6 +15,13 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=24)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
+    # JWT Configuration for cookie-based authentication (Secure Handshake)
+    JWT_TOKEN_LOCATION = ["cookies"]
+    JWT_COOKIE_SECURE = True  # Set to True in production with HTTPS
+    JWT_COOKIE_HTTPONLY = True  # Prevents XSS from accessing tokens
+    JWT_COOKIE_SAMESITE = "Lax"  # CSRF protection
+    JWT_COOKIE_CSRF_PROTECT = True  # Enable CSRF protection for cookie-based auth
+
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
@@ -45,12 +52,18 @@ class DevelopmentConfig(Config):
     DEBUG = True
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///farmart_dev.db")
 
+    # Allow non-secure cookies for localhost development
+    JWT_COOKIE_SECURE = False
+
 
 class ProductionConfig(Config):
     """Production configuration."""
 
     DEBUG = False
     SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL")
+
+    # Production requires secure cookies (HTTPS only)
+    JWT_COOKIE_SECURE = True
 
     @classmethod
     def init_app(cls, app):

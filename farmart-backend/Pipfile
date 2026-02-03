@@ -16,7 +16,8 @@ flask-restful = "*"
 flask-marshmallow = "*"
 marshmallow-sqlalchemy = "*"
 flask-migrate = "*"
-
+flask-limiter = "*"
+markupsafe = "*"
 [dev-packages]
 
 [requires]
