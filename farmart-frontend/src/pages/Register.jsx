@@ -3,6 +3,29 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { register } from '../features/auth/authSlice';
 
+// Password validation utility (matches backend requirements)
+const validatePassword = (password) => {
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[@$!%*?&]/.test(password);
+
+  if (password.length < minLength) {
+    return 'Password must be at least 8 characters';
+  }
+  if (!hasUpperCase || !hasLowerCase) {
+    return 'Password must contain uppercase and lowercase letters';
+  }
+  if (!hasNumber) {
+    return 'Password must contain a number';
+  }
+  if (!hasSpecialChar) {
+    return 'Password must contain a special character (@$!%*?&)';
+  }
+  return null;
+};
+
 const Register = () => {
   const [formData, setFormData] = useState({
     firstName: '',
@@ -14,19 +37,32 @@ const Register = () => {
     role: 'buyer'
   });
   const [error, setError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear password error when user starts typing
+    if (e.target.name === 'password') {
+      setPasswordError('');
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setPasswordError('');
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
+      return;
+    }
+
+    // Client-side password validation
+    const pwdError = validatePassword(formData.password);
+    if (pwdError) {
+      setPasswordError(pwdError);
       return;
     }
 
@@ -41,7 +77,7 @@ const Register = () => {
       })).unwrap();
       navigate('/login');
     } catch (err) {
-      setError(err.message || 'Registration failed');
+      setError(err.message || err || 'Registration failed');
     }
   };
 
@@ -130,6 +166,12 @@ const Register = () => {
               className="mt-1 w-full px-4 py-2 border rounded-lg"
               required
             />
+            {passwordError && (
+              <p className="text-red-500 text-sm mt-1">{passwordError}</p>
+            )}
+            <p className="text-gray-500 text-xs mt-1">
+              Must contain: 8+ chars, uppercase, lowercase, number, special char (@$!%*?&)
+            </p>
           </div>
 
           <div>
