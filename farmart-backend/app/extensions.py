@@ -11,10 +11,24 @@ db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
 
-# JWT Configuration for API tokens
+# Optional: Flask-Limiter for rate limiting (install with: pip install flask-limiter)
+try:
+    from flask_limiter import Limiter
+    from flask_limiter.util import get_remote_address
+
+    limiter = Limiter(
+        get_remote_address,
+        storage_uri="memory://",
+        strategy="fixed-window",
+    )
+except ImportError:
+    limiter = None
+
+# JWT Configuration for cookie-based authentication (Secure Handshake)
 jwt_config = {
-    "JWT_TOKEN_LOCATION": ["headers"],
-    "JWT_HEADER_NAME": "Authorization",
-    "JWT_HEADER_TYPE": "Bearer",
-    "JWT_COOKIE_CSRF_PROTECT": False,
+    "JWT_TOKEN_LOCATION": ["cookies"],
+    "JWT_COOKIE_SECURE": True,
+    "JWT_COOKIE_HTTPONLY": True,
+    "JWT_COOKIE_SAMESITE": "Lax",
+    "JWT_COOKIE_CSRF_PROTECT": True,
 }
