@@ -171,98 +171,35 @@ class UserAddress(db.Model):
 
 
 # ==================== Livestock Models ====================
-
-
 class Livestock(db.Model):
-    """Livestock listings by farmers."""
-
     __tablename__ = "livestock"
 
     id = db.Column(db.Integer, primary_key=True)
-    farmer_id = db.Column(
-        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
-    )
-    name = db.Column(db.String(100), nullable=False)
-    species = db.Column(db.String(50), nullable=False)  # cattle, goats, sheep, etc.
-    breed = db.Column(db.String(100))
-    gender = db.Column(db.String(20))  # male, female
-    age_years = db.Column(db.Float)
-    age_months = db.Column(db.Integer)
-    weight_kg = db.Column(db.Float)
-    color = db.Column(db.String(50))
-    description = db.Column(db.Text)
-    health_status = db.Column(db.String(50))  # healthy, vaccinated, etc.
-    price = db.Column(db.Numeric(10, 2), nullable=False)
-    currency = db.Column(db.String(3), default="KES")
-    status = db.Column(db.String(30), default=LivestockStatus.AVAILABLE)
-    view_count = db.Column(db.Integer, default=0)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
-    )
+    farmer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    farmer = db.relationship("User", back_populates="listings")
-    images = db.relationship(
-        "LivestockImage", back_populates="livestock", cascade="all, delete-orphan"
-    )
-    health_records = db.relationship(
-        "HealthRecord", back_populates="livestock", cascade="all, delete-orphan"
-    )
-    orders = db.relationship("Order", back_populates="livestock")
+    animal_type = db.Column(db.String(50), nullable=False)   # Cow, Goat, Sheep
+    breed = db.Column(db.String(100))
+    weight = db.Column(db.Float, nullable=False)
+    age_months = db.Column(db.Integer)
+    price = db.Column(db.Float, nullable=False)
+    location = db.Column(db.String(100), nullable=False)
+
+    is_available = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    farmer = db.relationship("User", back_populates="livestock")
 
     def to_dict(self):
-        """Convert livestock to dictionary."""
         return {
             "id": self.id,
-            "farmer_id": self.farmer_id,
-            "name": self.name,
-            "species": self.species,
+            "animal_type": self.animal_type,
             "breed": self.breed,
-            "gender": self.gender,
-            "age_years": self.age_years,
-            "age_months": self.age_months,
-            "weight_kg": self.weight_kg,
-            "health_status": self.health_status,
-            "price": float(self.price),
-            "currency": self.currency,
-            "status": self.status,
-            "images": [img.image_url for img in self.images],
-            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "weight": self.weight,
+            "price": self.price,
+            "location": self.location,
+            "is_available": self.is_available,
+            "created_at": self.created_at.isoformat()
         }
-
-
-class LivestockImage(db.Model):
-    """Images for livestock listings."""
-
-    __tablename__ = "livestock_images"
-
-    id = db.Column(db.Integer, primary_key=True)
-    livestock_id = db.Column(db.Integer, db.ForeignKey("livestock.id"), nullable=False)
-    image_url = db.Column(db.String(500), nullable=False)
-    is_primary = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    livestock = db.relationship("Livestock", back_populates="images")
-
-
-class HealthRecord(db.Model):
-    """Health and vaccination records for livestock."""
-
-    __tablename__ = "health_records"
-
-    id = db.Column(db.Integer, primary_key=True)
-    livestock_id = db.Column(db.Integer, db.ForeignKey("livestock.id"), nullable=False)
-    record_type = db.Column(
-        db.String(50), nullable=False
-    )  # vaccination, deworming, checkup
-    record_date = db.Column(db.Date, nullable=False)
-    description = db.Column(db.Text)
-    veterinarian_name = db.Column(db.String(100))
-    document_url = db.Column(db.String(500))
-    next_due_date = db.Column(db.Date)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-    livestock = db.relationship("Livestock", back_populates="health_records")
 
 
 # ==================== Order Models ====================
