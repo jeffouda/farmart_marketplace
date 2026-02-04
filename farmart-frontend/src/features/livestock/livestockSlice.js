@@ -1,65 +1,33 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
-// Async thunk for fetching livestock
-export const fetchLivestock = createAsyncThunk(
-  'livestock/fetchLivestock',
-  async (_, { rejectWithValue }) => {
-    try {
-      // Mock API call - replace with actual API
-      const response = await fetch('/api/livestock');
-      if (!response.ok) {
-        throw new Error('Failed to fetch livestock');
-      }
-      return await response.json();
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
+export const fetchAnimals = createAsyncThunk(
+  "livestock/fetchAnimals",
+  async (filters) => {
+    // Converts filters into URL params: ?type=goat&location=kiambu
+    const response = await axios.get("/api/animals", { params: filters });
+    return response.data;
+  },
 );
 
-const initialState = {
-  items: [],
-  status: 'idle',
-  error: null,
-  filters: {},
-  total: 0,
-};
-
 const livestockSlice = createSlice({
-  name: 'livestock',
-  initialState,
-  reducers: {
-    addLivestock: (state, action) => {
-      state.items.push(action.payload);
-    },
-    removeLivestock: (state, action) => {
-      state.items = state.items.filter(item => item.id !== action.payload);
-    },
-    updateLivestock: (state, action) => {
-      const index = state.items.findIndex(item => item.id === action.payload.id);
-      if (index >= 0) {
-        state.items[index] = action.payload;
-      }
-    },
-    setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
-    },
-  },
+  name: "livestock",
+  initialState: { items: [], status: "idle", error: null },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchLivestock.pending, (state) => {
-        state.status = 'loading';
+      .addCase(fetchAnimals.pending, (state) => {
+        state.status = "loading";
       })
-      .addCase(fetchLivestock.fulfilled, (state, action) => {
-        state.status = 'succeeded';
+      .addCase(fetchAnimals.fulfilled, (state, action) => {
+        state.status = "succeeded";
         state.items = action.payload;
       })
-      .addCase(fetchLivestock.rejected, (state, action) => {
-        state.status = 'failed';
-        state.error = action.payload;
+      .addCase(fetchAnimals.rejected, (state, action) => {
+        state.status = "failed";
+        state.error = action.error.message;
       });
   },
 });
 
-export const { addLivestock, removeLivestock, updateLivestock, setFilters } = livestockSlice.actions;
 export default livestockSlice.reducer;
