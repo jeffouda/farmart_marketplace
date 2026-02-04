@@ -9,6 +9,7 @@ from app.routes.farmer import farmer_bp
 from app.routes.buyer import buyer_bp
 from app.routes.admin import admin_bp
 from app.routes.payments import payments_bp
+from app.routes.api import api_bp
 
 # Import RESTful API objects
 from app.routes.auth import auth_api
@@ -20,5 +21,6 @@ __all__ = [
     "buyer_bp",
     "admin_bp",
     "payments_bp",
+    "api_bp",
     "auth_api",
 ]

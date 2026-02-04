@@ -190,9 +190,53 @@ class AuthMe(Resource):
         return {"user": user_schema.dump(user)}, 200
 
 
+class AuthProfile(Resource):
+    """Resource for updating user profile."""
+
+    @jwt_required()
+    def patch(self):
+        current_user_id = get_jwt_identity()
+        user = User.query.get(current_user_id)
+
+        if not user:
+            return {"error": "User not found"}, 404
+
+        data = request.get_json() or {}
+
+        # Handle profile image removal
+        if data.get("profile_image_url") is None:
+            user.profile_image_url = None
+            if user.profile:
+                user.profile.profile_image_url = None
+
+        # Update other fields
+        for field in [
+            "first_name",
+            "last_name",
+            "phone_number",
+            "location",
+            "bio",
+            "farm_name",
+            "farm_location",
+            "specialization",
+        ]:
+            if field in data:
+                setattr(user, field, data[field])
+                if user.profile:
+                    setattr(user.profile, field, data[field])
+
+        db.session.commit()
+
+        return {
+            "message": "Profile updated successfully",
+            "user": user_schema.dump(user),
+        }, 200
+
+
 # Register resources with the API
 auth_api.add_resource(AuthRegister, "/register")
 auth_api.add_resource(AuthLogin, "/login")
 auth_api.add_resource(AuthLogout, "/logout")
 auth_api.add_resource(AuthRefresh, "/refresh")
 auth_api.add_resource(AuthMe, "/me")
+auth_api.add_resource(AuthProfile, "/profile")

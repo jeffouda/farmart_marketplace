@@ -46,7 +46,7 @@ def create_app(config_name="development"):
                 "origins": app.config.get("FRONTEND_URL", "http://localhost:5173"),
                 "supports_credentials": True,
                 "allow_headers": ["Content-Type", "Authorization"],
-                "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+                "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             }
         },
     )
@@ -67,7 +67,7 @@ def create_app(config_name="development"):
                 "Content-Type, Authorization"
             )
             response.headers["Access-Control-Allow-Methods"] = (
-                "GET, POST, PUT, DELETE, OPTIONS"
+                "GET, POST, PUT, PATCH, DELETE, OPTIONS"
             )
             response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
@@ -101,13 +101,21 @@ def create_app(config_name="development"):
             pass
 
         # Register blueprints for backward compatibility
-        from app.routes import auth_bp, farmer_bp, buyer_bp, admin_bp, payments_bp
+        from app.routes import (
+            auth_bp,
+            farmer_bp,
+            buyer_bp,
+            admin_bp,
+            payments_bp,
+            api_bp,
+        )
 
         app.register_blueprint(auth_bp, url_prefix="/api/auth")
-        app.register_blueprint(farmer_bp, url_prefix="/api/farmer")
+        app.register_blueprint(farmer_bp, url_prefix="/api/v1/farmer")
         app.register_blueprint(buyer_bp, url_prefix="/api/buyer")
         app.register_blueprint(admin_bp, url_prefix="/api/admin")
         app.register_blueprint(payments_bp, url_prefix="/api/payments")
+        app.register_blueprint(api_bp)  # /api/livestock and /api/orders/my_orders
 
     # Return app and limiter for use in route modules
     app.limiter = limiter
