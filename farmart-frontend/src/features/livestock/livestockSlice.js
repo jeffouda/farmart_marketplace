@@ -1,10 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-export const fetchAnimals = createAsyncThunk(
-  "livestock/fetchAnimals",
+export const fetchLivestock = createAsyncThunk(
+  "livestock/fetchLivestock",
   async (filters) => {
-    // Converts filters into URL params: ?type=goat&location=kiambu
+    // This sends your search criteria to the Flask backend
     const response = await axios.get("/api/animals", { params: filters });
     return response.data;
   },
@@ -12,20 +12,16 @@ export const fetchAnimals = createAsyncThunk(
 
 const livestockSlice = createSlice({
   name: "livestock",
-  initialState: { items: [], status: "idle", error: null },
+  initialState: { items: [], status: "idle" },
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchAnimals.pending, (state) => {
+      .addCase(fetchLivestock.pending, (state) => {
         state.status = "loading";
       })
-      .addCase(fetchAnimals.fulfilled, (state, action) => {
+      .addCase(fetchLivestock.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.items = action.payload;
-      })
-      .addCase(fetchAnimals.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.error.message;
       });
   },
 });
