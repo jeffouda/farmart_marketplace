@@ -137,6 +137,7 @@ class UserProfile(db.Model):
     bank_name = db.Column(db.String(100))
     bank_account_number = db.Column(db.String(50))
     mpesa_number = db.Column(db.String(20))
+    is_verified = db.Column(db.Boolean, default=False)
     rating = db.Column(db.Float, default=0.0)
     total_sales = db.Column(db.Integer, default=0)
     total_purchases = db.Column(db.Integer, default=0)
@@ -500,3 +501,4 @@ class DailyMetrics(db.Model):
     active_users = db.Column(db.Integer, default=0)
     page_views = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
