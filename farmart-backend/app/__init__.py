@@ -9,7 +9,7 @@ Creates Flask app and initializes extensions:
 
 from flask import Flask, request, after_this_request, make_response
 from flask_cors import CORS
-from app.extensions import db, jwt, migrate, limiter
+from app.extensions import db, jwt, migrate, limiter, jwt_config
 from app.config import DevelopmentConfig, ProductionConfig, TestingConfig
 from app.schemas import ma
 
@@ -34,18 +34,26 @@ def create_app(config_name="development"):
         "default": DevelopmentConfig,
     }
     app.config.from_object(config_map.get(config_name, DevelopmentConfig)())
+    
+    # Apply JWT config from extensions (ensures both cookies and headers are accepted)
+    for key, value in jwt_config.items():
+        app.config[key] = value
 
     # Initialize extensions with app
     db.init_app(app)
     migrate.init_app(app, db)  # Initialize Flask-Migrate
     ma.init_app(app)  # Initialize Marshmallow
+    
+    # Configure CORS for credentials
+    frontend_url = app.config.get("FRONTEND_URL", "http://localhost:5173")
     CORS(
         app,
         resources={
             r"/api/*": {
-                "origins": app.config.get("FRONTEND_URL", "http://localhost:5173"),
+                "origin": frontend_url,
                 "supports_credentials": True,
-                "allow_headers": ["Content-Type", "Authorization"],
+                "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+                "expose_headers": ["Set-Cookie", "Authorization"],
                 "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
             }
         },

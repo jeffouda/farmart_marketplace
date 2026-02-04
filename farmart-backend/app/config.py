@@ -16,7 +16,10 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
     # JWT Configuration for cookie-based authentication (Secure Handshake)
-    JWT_TOKEN_LOCATION = ["cookies"]
+    # Use both cookies AND headers for redundancy during file uploads
+    JWT_TOKEN_LOCATION = ["cookies", "headers"]
+    JWT_ACCESS_TOKEN_HEADER_NAME = "Authorization"
+    JWT_ACCESS_TOKEN_QUERY_STRING_ARG = "token"
     JWT_COOKIE_SECURE = True  # Set to True in production with HTTPS
     JWT_COOKIE_HTTPONLY = True  # Prevents XSS from accessing tokens
     JWT_COOKIE_SAMESITE = "Lax"  # CSRF protection
@@ -43,9 +46,9 @@ class Config:
     ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "csv", "xlsx"}
 
     # Cloudinary Configuration
-    CLOUDINARY_CLOUD_NAME = os.environ.get('CLOUDINARY_CLOUD_NAME')
-    CLOUDINARY_API_KEY = os.environ.get('CLOUDINARY_API_KEY')
-    CLOUDINARY_API_SECRET = os.environ.get('CLOUDINARY_API_SECRET')
+    CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
+    CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
+    CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
 
     # Frontend URL for CORS
     FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173")
