@@ -30,6 +30,35 @@ class UserSchema(ma.SQLAlchemyAutoSchema):
     is_active = fields.Boolean(dump_only=True)
     is_verified = fields.Boolean(dump_only=True)
     created_at = fields.DateTime(dump_only=True)
+    # Nested profile with profile_image_url
+    profile = fields.Nested(lambda: UserProfileSchema(only=[
+        'id', 'bio', 'profile_image_url', 'location', 'rating', 'total_sales', 'total_purchases'
+    ]))
+    # Convenience field for direct access to profile_image_url
+    profile_image_url = fields.Method('get_profile_image_url')
+    
+    def get_profile_image_url(self, obj):
+        """Get profile image URL from profile relationship."""
+        if hasattr(obj, 'profile') and obj.profile:
+            return obj.profile.profile_image_url
+        return None
+
+
+class UserProfileSchema(ma.SQLAlchemyAutoSchema):
+    """Marshmallow schema for UserProfile model."""
+    
+    class Meta:
+        load_instance = True
+        sqla_session = db.session
+        
+    id = fields.Integer(dump_only=True)
+    user_id = fields.Integer(dump_only=True)
+    bio = fields.String()
+    profile_image_url = fields.String()
+    location = fields.String()
+    rating = fields.Float()
+    total_sales = fields.Integer()
+    total_purchases = fields.Integer()
 
 
 class UserRegisterSchema(ma.Schema):
