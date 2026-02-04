@@ -72,9 +72,15 @@ class User(db.Model):
 
     # Relationships
     profile = db.relationship("UserProfile", back_populates="user", uselist=False)
+    
+    # Use 'listings' as the primary relationship for a Farmer's livestock
     listings = db.relationship(
-        "Livestock", back_populates="farmer", foreign_keys="Livestock.farmer_id"
+        "Livestock", 
+        back_populates="farmer", 
+        foreign_keys="Livestock.farmer_id",
+        cascade="all, delete-orphan"
     )
+    
     orders = db.relationship(
         "Order", back_populates="buyer", foreign_keys="Order.buyer_id"
     )
@@ -185,7 +191,11 @@ class Livestock(db.Model):
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    farmer = db.relationship("User", back_populates="livestock")
+    # FIXED: back_populates must match the attribute name in the User model ('listings')
+    farmer = db.relationship("User", back_populates="listings")
+    
+    # Relationship for orders targeting this specific animal
+    orders = db.relationship("Order", back_populates="livestock")
 
     def to_dict(self):
         return {
@@ -196,7 +206,7 @@ class Livestock(db.Model):
             "price": self.price,
             "location": self.location,
             "is_available": self.is_available,
-            "created_at": self.created_at.isoformat()
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }
 
 
@@ -235,7 +245,10 @@ class Order(db.Model):
     )
 
     buyer = db.relationship("User", back_populates="orders", foreign_keys=[buyer_id])
+    
+    # This matches the relationship defined in Livestock
     livestock = db.relationship("Livestock", back_populates="orders")
+    
     payment = db.relationship("Payment", back_populates="order", uselist=False)
     dispute = db.relationship("Dispute", back_populates="order", uselist=False)
 

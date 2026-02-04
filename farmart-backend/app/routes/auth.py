@@ -14,6 +14,7 @@ from flask_jwt_extended import (
     set_refresh_cookies,
     unset_jwt_cookies,
 )
+from marshmallow import ValidationError
 from app import db
 from app.models import User
 from app.schemas import user_register_schema, user_login_schema, user_schema
@@ -60,8 +61,12 @@ class AuthRegister(Resource):
         # Validate input using marshmallow schema
         try:
             data = user_register_schema.load(request.get_json())
-        except Exception as err:
+        except ValidationError as err:
+            # ValidationError has the .messages attribute
             return {"error": err.messages}, 400
+        except Exception as err:
+            # Catch SQLAlchemy or other system errors safely
+            return {"error": str(err)}, 500
 
         # Sanity Check: Strip HTML/script tags from usernames (XSS Prevention)
         data["first_name"] = self.strip_html_tags(data.get("first_name", ""))
@@ -75,35 +80,39 @@ class AuthRegister(Resource):
         if User.query.filter_by(phone_number=data["phone_number"]).first():
             return {"error": "Phone number already registered"}, 400
 
-        # Create new user
-        user = User(
-            email=data["email"],
-            first_name=data["first_name"],
-            last_name=data["last_name"],
-            phone_number=data["phone_number"],
-            role=data["role"],
-            is_verified=True,  # Auto-verify for development/demo
-        )
-        user.set_password(data["password"])
+        try:
+            # Create new user
+            user = User(
+                email=data["email"],
+                first_name=data["first_name"],
+                last_name=data["last_name"],
+                phone_number=data["phone_number"],
+                role=data["role"],
+                is_verified=True,  # Auto-verify for development/demo
+            )
+            user.set_password(data["password"])
 
-        db.session.add(user)
-        db.session.commit()
+            db.session.add(user)
+            db.session.commit()
 
-        access_token = create_access_token(identity=user.id)
-        refresh_token = create_refresh_token(identity=user.id)
+            access_token = create_access_token(identity=user.id)
+            refresh_token = create_refresh_token(identity=user.id)
 
-        # Set JWT tokens as HttpOnly, Secure cookies
-        response = make_response(
-            {
-                "message": "User registered successfully",
-                "user": user_schema.dump(user),
-            },
-            201,
-        )
-        set_access_cookies(response, access_token)
-        set_refresh_cookies(response, refresh_token)
+            # Set JWT tokens as HttpOnly, Secure cookies
+            response = make_response(
+                {
+                    "message": "User registered successfully",
+                    "user": user_schema.dump(user),
+                },
+                201,
+            )
+            set_access_cookies(response, access_token)
+            set_refresh_cookies(response, refresh_token)
 
-        return response
+            return response
+        except Exception as e:
+            db.session.rollback()
+            return {"error": "Database error occurred", "details": str(e)}, 500
 
 
 class AuthLogin(Resource):
@@ -117,8 +126,10 @@ class AuthLogin(Resource):
         """Login user and return JWT tokens via secure cookies."""
         try:
             data = user_login_schema.load(request.get_json())
-        except Exception as err:
+        except ValidationError as err:
             return {"error": err.messages}, 400
+        except Exception as err:
+            return {"error": str(err)}, 500
 
         user = User.query.filter_by(email=data["email"]).first()
 
@@ -225,12 +236,15 @@ class AuthProfile(Resource):
                 if user.profile:
                     setattr(user.profile, field, data[field])
 
-        db.session.commit()
-
-        return {
-            "message": "Profile updated successfully",
-            "user": user_schema.dump(user),
-        }, 200
+        try:
+            db.session.commit()
+            return {
+                "message": "Profile updated successfully",
+                "user": user_schema.dump(user),
+            }, 200
+        except Exception as e:
+            db.session.rollback()
+            return {"error": "Could not update profile", "details": str(e)}, 500
 
 
 # Register resources with the API
