@@ -23,7 +23,7 @@ class Config:
     JWT_COOKIE_SECURE = True  # Set to True in production with HTTPS
     JWT_COOKIE_HTTPONLY = True  # Prevents XSS from accessing tokens
     JWT_COOKIE_SAMESITE = "Lax"  # CSRF protection
-    JWT_COOKIE_CSRF_PROTECT = True  # Enable CSRF protection for cookie-based auth
+    JWT_COOKIE_CSRF_PROTECT = False  # Disable for local development
 
     # Database
     SQLALCHEMY_TRACK_MODIFICATIONS = False
