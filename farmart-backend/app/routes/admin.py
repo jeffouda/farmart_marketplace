@@ -1,8 +1,3 @@
-"""
-Admin Routes
-User moderation, Commission rules, Disputes
-"""
-
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
@@ -19,9 +14,12 @@ from app.models import (
     LivestockStatus,
     OrderStatus,
     DisputeStatus,
+    EscrowAccount, 
+    Payment
 )
 from app import db
 from app.utils.decorators import admin_required
+from app.services.moderation_service import moderation_service
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -68,62 +66,88 @@ def get_users():
 @jwt_required()
 @admin_required
 def get_user_detail(user_id):
-    """Get user details including profile and stats."""
+    """
+    Get detailed user information for Admin:
+    - Basic user info
+    - Profile data
+    - Role-specific statistics
+    """
     user = User.query.get(user_id)
-
     if not user:
         return jsonify({"error": "User not found"}), 404
 
+    # ---------- ROLE-SPECIFIC STATS ----------
     if user.role == UserRole.FARMER:
         total_listings = Livestock.query.filter_by(farmer_id=user_id).count()
-        total_sales = (
+
+        delivered_orders = (
             Order.query
             .join(Livestock)
             .filter(
-                Livestock.farmer_id == user_id, Order.status == OrderStatus.DELIVERED
+                Livestock.farmer_id == user_id,
+                Order.status == OrderStatus.DELIVERED
             )
-            .count()
         )
-        revenue = (
+
+        total_sales = delivered_orders.count()
+
+        total_revenue = (
             db.session
             .query(func.sum(Order.total_amount))
             .join(Livestock)
             .filter(
-                Livestock.farmer_id == user_id, Order.status == OrderStatus.DELIVERED
+                Livestock.farmer_id == user_id,
+                Order.status == OrderStatus.DELIVERED
             )
             .scalar()
             or 0
         )
+
         stats = {
             "total_listings": total_listings,
             "total_sales": total_sales,
-            "total_revenue": float(revenue),
+            "total_revenue": float(total_revenue),
         }
-    else:
+
+    else:  # BUYER or ADMIN
         total_orders = Order.query.filter_by(buyer_id=user_id).count()
+
         total_spent = (
             db.session
             .query(func.sum(Order.total_amount))
-            .filter(Order.buyer_id == user_id, Order.status == OrderStatus.DELIVERED)
+            .filter(
+                Order.buyer_id == user_id,
+                Order.status == OrderStatus.DELIVERED
+            )
             .scalar()
             or 0
         )
-        stats = {"total_orders": total_orders, "total_spent": float(total_spent)}
+
+        stats = {
+            "total_orders": total_orders,
+            "total_spent": float(total_spent),
+        }
+
+    # ---------- PROFILE ----------
+    profile_data = None
+    if user.profile:
+        profile_data = {
+            "bio": user.profile.bio,
+            "location": user.profile.location,
+            "rating": user.profile.rating,
+            "id_number": user.profile.id_number,
+            "is_verified": user.profile.is_verified,
+            "bank_name": user.profile.bank_name,
+            "mpesa_number": user.profile.mpesa_number,
+            "total_sales": user.profile.total_sales,
+            "total_purchases": user.profile.total_purchases,
+        }
 
     return jsonify({
         "user": user.to_dict(),
-        "profile": {
-            "bio": user.profile.bio if user.profile else None,
-            "location": user.profile.location if user.profile else None,
-            "rating": user.profile.rating if user.profile else None,
-            "id_number": user.profile.id_number if user.profile else None,
-            "is_verified": user.profile.is_verified if user.profile else False,
-        }
-        if user.profile
-        else None,
+        "profile": profile_data,
         "stats": stats,
     }), 200
-
 
 @admin_bp.route("/users/<int:user_id>/activate", methods=["POST"])
 @jwt_required()
@@ -392,13 +416,12 @@ def update_commission_rule(rule_id):
 @jwt_required()
 @admin_required
 def get_disputes():
-    """Get all disputes."""
+    """Get all disputes (enriched for admin dashboard)."""
     page = request.args.get("page", 1, type=int)
     per_page = request.args.get("per_page", 20, type=int)
     status = request.args.get("status")
 
     query = Dispute.query
-
     if status:
         query = query.filter_by(status=status)
 
@@ -406,19 +429,28 @@ def get_disputes():
         page=page, per_page=per_page, error_out=False
     )
 
+    disputes_out = []
+    for d in pagination.items:
+        order = Order.query.get(d.order_id)
+        escrow = EscrowAccount.query.filter_by(order_id=d.order_id).first()
+        payment = Payment.query.filter_by(order_id=d.order_id).first()
+
+        disputes_out.append({
+            "id": d.id,
+            "order_id": d.order_id,
+            "order_number": order.order_number if order else None,
+            "order_total": float(order.total_amount) if order and order.total_amount else None,
+            "user_id": d.user_id,
+            "dispute_type": d.dispute_type,
+            "description": d.description,
+            "status": d.status,
+            "escrow_status": escrow.status if escrow else None,
+            "payment_status": payment.status if payment else None,
+            "created_at": d.created_at.isoformat() if d.created_at else None,
+        })
+
     return jsonify({
-        "disputes": [
-            {
-                "id": d.id,
-                "order_id": d.order_id,
-                "user_id": d.user_id,
-                "dispute_type": d.dispute_type,
-                "description": d.description,
-                "status": d.status,
-                "created_at": d.created_at.isoformat(),
-            }
-            for d in pagination.items
-        ],
+        "disputes": disputes_out,
         "total": pagination.total,
         "page": pagination.page,
         "per_page": pagination.per_page,
@@ -430,13 +462,14 @@ def get_disputes():
 @jwt_required()
 @admin_required
 def get_dispute_detail(dispute_id):
-    """Get dispute details with order info."""
+    """Get dispute details with order + escrow + payment info."""
     dispute = Dispute.query.get(dispute_id)
-
     if not dispute:
         return jsonify({"error": "Dispute not found"}), 404
 
     order = Order.query.get(dispute.order_id)
+    escrow = EscrowAccount.query.filter_by(order_id=dispute.order_id).first()
+    payment = Payment.query.filter_by(order_id=dispute.order_id).first()
 
     return jsonify({
         "dispute": {
@@ -449,71 +482,144 @@ def get_dispute_detail(dispute_id):
             "status": dispute.status,
             "admin_notes": dispute.admin_notes,
             "resolution": dispute.resolution,
-            "amount_refunded": float(dispute.amount_refunded)
-            if dispute.amount_refunded
-            else None,
-            "opened_at": dispute.opened_at.isoformat(),
-            "resolved_at": dispute.resolved_at.isoformat()
-            if dispute.resolved_at
-            else None,
+            "amount_refunded": float(dispute.amount_refunded) if dispute.amount_refunded else None,
+            "opened_at": dispute.opened_at.isoformat() if dispute.opened_at else None,
+            "resolved_at": dispute.resolved_at.isoformat() if dispute.resolved_at else None,
+            "created_at": dispute.created_at.isoformat() if dispute.created_at else None,
         },
         "order": order.to_dict() if order else None,
+        "escrow": {
+            "status": escrow.status,
+            "amount": float(escrow.amount),
+            "farmer_payout_amount": float(escrow.farmer_payout_amount),
+            "held_at": escrow.held_at.isoformat() if escrow.held_at else None,
+            "released_at": escrow.released_at.isoformat() if escrow.released_at else None,
+        } if escrow else None,
+        "payment": {
+            "status": payment.status,
+            "amount": float(payment.amount),
+            "mpesa_receipt": payment.mpesa_receipt_number,
+            "created_at": payment.created_at.isoformat() if payment.created_at else None,
+        } if payment else None,
     }), 200
 
+@admin_bp.route("/disputes/<int:dispute_id>/under-review", methods=["POST"])
+@jwt_required()
+@admin_required
+def mark_dispute_under_review(dispute_id):
+    """
+    Move dispute OPEN -> UNDER_REVIEW
+    Body: { "admin_notes": "..." }
+    """
+    dispute = Dispute.query.get(dispute_id)
+    if not dispute:
+        return jsonify({"error": "Dispute not found"}), 404
+
+    data = request.get_json() or {}
+    admin_notes = data.get("admin_notes")
+
+    try:
+        moderation_service.mark_under_review(dispute, admin_notes=admin_notes)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 400
+
+    admin_id = get_jwt_identity()
+    audit = AuditLog(
+        admin_id=admin_id,
+        action="dispute_under_review",
+        entity_type="dispute",
+        entity_id=dispute_id,
+        new_values={"status": DisputeStatus.UNDER_REVIEW},
+    )
+    db.session.add(audit)
+    db.session.commit()
+
+    return jsonify({"message": "Dispute marked as under review"}), 200
 
 @admin_bp.route("/disputes/<int:dispute_id>/resolve", methods=["POST"])
 @jwt_required()
 @admin_required
 def resolve_dispute(dispute_id):
-    """Resolve a dispute."""
+    """
+    Resolve a dispute.
+    Body:
+      {
+        "action": "refund" | "release",
+        "resolution": "Required text",
+        "admin_notes": "Optional notes",
+        "amount_refunded": 1234.50   # optional (refund only)
+      }
+    """
     dispute = Dispute.query.get(dispute_id)
-
     if not dispute:
         return jsonify({"error": "Dispute not found"}), 404
 
-    data = request.get_json()
+    data = request.get_json() or {}
 
+    action = (data.get("action") or "").strip().lower()  # refund | release
     resolution = data.get("resolution")
+    admin_notes = data.get("admin_notes")
     refund_amount = data.get("amount_refunded")
-    action = data.get("action")  # 'refund', 'release_escrow', 'partial'
 
-    dispute.status = DisputeStatus.RESOLVED
-    dispute.resolution = resolution
-    dispute.admin_notes = data.get("admin_notes")
-    dispute.resolved_at = datetime.utcnow()
+    if not resolution:
+        return jsonify({"error": "resolution is required"}), 400
 
-    if refund_amount:
-        dispute.amount_refunded = refund_amount
+    if dispute.status not in [DisputeStatus.OPEN, DisputeStatus.UNDER_REVIEW]:
+        return jsonify({"error": f"Cannot resolve dispute from status '{dispute.status}'"}), 400
 
     order = Order.query.get(dispute.order_id)
-    if order:
+    if not order:
+        return jsonify({"error": "Order not found for dispute"}), 404
+
+    admin_id = get_jwt_identity()
+
+    try:
         if action == "refund":
+            moderation_service.refund_order(order_id=order.id, refund_amount=refund_amount)
             order.status = OrderStatus.CANCELLED
+
             livestock = Livestock.query.get(order.livestock_id)
             if livestock:
                 livestock.status = LivestockStatus.AVAILABLE
-        elif action == "release_escrow":
+
+        elif action == "release":
+            moderation_service.release_escrow(order_id=order.id)
             order.status = OrderStatus.DELIVERED
-            from app.services.escrow_manager import EscrowManager
 
-            EscrowManager.release_escrow(order.id)
+        else:
+            return jsonify({"error": "Invalid action. Use 'refund' or 'release'."}), 400
 
-    admin_id = get_jwt_identity()
+    except Exception as e:
+        return jsonify({"error": "Failed to resolve dispute", "details": str(e)}), 500
+
+    dispute.status = DisputeStatus.RESOLVED
+    dispute.resolution = resolution
+    dispute.admin_notes = admin_notes
+    dispute.resolved_at = datetime.utcnow()
+
+    if action == "refund" and refund_amount is not None:
+        dispute.amount_refunded = refund_amount
+
     audit = AuditLog(
         admin_id=admin_id,
         action="dispute_resolved",
         entity_type="dispute",
         entity_id=dispute_id,
-        new_values={"resolution": resolution, "action": action},
+        new_values={
+            "resolution": resolution,
+            "action": action,
+            "amount_refunded": refund_amount,
+        },
     )
+
     db.session.add(audit)
     db.session.commit()
 
     return jsonify({
         "message": "Dispute resolved successfully",
         "resolution": resolution,
+        "action": action,
     }), 200
-
 
 @admin_bp.route("/orders", methods=["GET"])
 @jwt_required()

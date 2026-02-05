@@ -25,11 +25,12 @@ except ImportError:
     limiter = None
 
 # JWT Configuration for cookie-based authentication (Secure Handshake)
+# Use both cookies AND headers for redundancy during file uploads
 jwt_config = {
-    "JWT_TOKEN_LOCATION": ["cookies"],
-    "JWT_COOKIE_SECURE": True,
-    "JWT_COOKIE_HTTPONLY": True,
-    "JWT_COOKIE_SAMESITE": "Lax",
-    "JWT_COOKIE_CSRF_PROTECT": True,
+    "JWT_TOKEN_LOCATION": ["cookies", "headers"],
+    "JWT_ACCESS_TOKEN_HEADER_NAME": "Authorization",
+    "JWT_COOKIE_SECURE": False,  # Allow non-secure cookies for localhost
+    "JWT_COOKIE_HTTPONLY": True,  # Prevents XSS from accessing tokens
+    "JWT_COOKIE_SAMESITE": "Lax",  # CSRF protection
+    "JWT_COOKIE_CSRF_PROTECT": False,  # Disabled for development to allow file uploads
 }
-

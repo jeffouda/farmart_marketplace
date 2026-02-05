@@ -143,6 +143,7 @@ class UserProfile(db.Model):
     bank_name = db.Column(db.String(100))
     bank_account_number = db.Column(db.String(50))
     mpesa_number = db.Column(db.String(20))
+    is_verified = db.Column(db.Boolean, default=False)
     rating = db.Column(db.Float, default=0.0)
     total_sales = db.Column(db.Integer, default=0)
     total_purchases = db.Column(db.Integer, default=0)
@@ -175,21 +176,68 @@ class UserAddress(db.Model):
 
 
 # ==================== Livestock Models ====================
+
+
+class Vaccination(db.Model):
+    """Vaccination records for livestock."""
+
+    __tablename__ = "vaccinations"
+
+    id = db.Column(db.Integer, primary_key=True)
+    livestock_id = db.Column(db.Integer, db.ForeignKey("livestock.id"), nullable=False)
+
+    name = db.Column(
+        db.String(100), nullable=False
+    )  # e.g., Foot and Mouth, Brucellosis
+    date_administered = db.Column(db.Date, nullable=False)
+    next_due_date = db.Column(db.Date)
+    certificate_url = db.Column(db.String(500))  # URL to vaccine certificate
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    livestock = db.relationship("Livestock", back_populates="vaccinations")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "livestock_id": self.livestock_id,
+            "name": self.name,
+            "date_administered": self.date_administered.isoformat()
+            if self.date_administered
+            else None,
+            "next_due_date": self.next_due_date.isoformat()
+            if self.next_due_date
+            else None,
+            "certificate_url": self.certificate_url,
+        }
+
+
 class Livestock(db.Model):
     __tablename__ = "livestock"
 
     id = db.Column(db.Integer, primary_key=True)
     farmer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    animal_type = db.Column(db.String(50), nullable=False)   # Cow, Goat, Sheep
+    animal_type = db.Column(db.String(50), nullable=False)  # Cow, Goat, Sheep
     breed = db.Column(db.String(100))
+    gender = db.Column(db.String(20))  # male, female
     weight = db.Column(db.Float, nullable=False)
     age_months = db.Column(db.Integer)
     price = db.Column(db.Float, nullable=False)
+    price_per_kg = db.Column(db.Float)  # Optional: price per kg
+    original_price = db.Column(db.Float)  # Original price for showing discounts
     location = db.Column(db.String(100), nullable=False)
+    image_url = db.Column(db.String(500))  # Primary image URL
+    images = db.Column(db.Text)  # JSON array of additional image URLs
+
+    description = db.Column(db.Text)  # Selling pitch / reason for sale
+    reason_for_sale = db.Column(db.String(100))  # Breeding, Slaughter, Dairy, etc.
+    health_certified = db.Column(db.Boolean, default=False)
 
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     # FIXED: back_populates must match the attribute name in the User model ('listings')
     farmer = db.relationship("User", back_populates="listings")
@@ -202,9 +250,17 @@ class Livestock(db.Model):
             "id": self.id,
             "animal_type": self.animal_type,
             "breed": self.breed,
+            "gender": self.gender,
             "weight": self.weight,
-            "price": self.price,
+            "age_months": self.age_months,
+            "price": float(self.price),
+            "price_per_kg": float(self.price_per_kg) if self.price_per_kg else None,
             "location": self.location,
+            "image_url": self.image_url,
+            "images": self.images.split(",") if self.images else [],
+            "description": self.description,
+            "reason_for_sale": self.reason_for_sale,
+            "health_certified": self.health_certified,
             "is_available": self.is_available,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }

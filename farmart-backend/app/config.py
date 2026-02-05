@@ -16,7 +16,10 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
 
     # JWT Configuration for cookie-based authentication (Secure Handshake)
-    JWT_TOKEN_LOCATION = ["cookies"]
+    # Use both cookies AND headers for redundancy during file uploads
+    JWT_TOKEN_LOCATION = ["cookies", "headers"]
+    JWT_ACCESS_TOKEN_HEADER_NAME = "Authorization"
+    JWT_ACCESS_TOKEN_QUERY_STRING_ARG = "token"
     JWT_COOKIE_SECURE = True  # Set to True in production with HTTPS
     JWT_COOKIE_HTTPONLY = True  # Prevents XSS from accessing tokens
     JWT_COOKIE_SAMESITE = "Lax"  # CSRF protection
