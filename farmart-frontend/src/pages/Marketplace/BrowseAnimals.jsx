@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Filter, Grid, List, ChevronDown, ShoppingCart, Heart, MapPin, Calendar, Tag } from 'lucide-react';
-import api from '../../services/api';
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchLivestock } from '../../features/livestock/livestockSlice';
+import { optimizeImageUrl } from '../../components/cards/LivestockCard';
+
+// BrowseAnimals.jsx - uses optimizeImageUrl from LivestockCard
 
 const BrowseAnimals = () => {
-  const [animals, setAnimals] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const dispatch = useDispatch();
   const [filters, setFilters] = useState({
     species: '',
     minPrice: '',
@@ -16,22 +18,12 @@ const BrowseAnimals = () => {
   });
 
   useEffect(() => {
-    fetchAnimals();
-  }, []);
+    dispatch(fetchLivestock());
+  }, [dispatch]);
 
-  const fetchAnimals = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/livestock');
-      setAnimals(response || []);
-      setError(null);
-    } catch (err) {
-      console.error('Error fetching animals:', err);
-      setError('Failed to load animals. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = useSelector((state) => state.livestock.status === 'loading');
+  const error = useSelector((state) => state.livestock.error);
+  const animals = useSelector((state) => state.livestock.items);
 
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -203,7 +195,7 @@ const BrowseAnimals = () => {
                   >
                     <div className="relative">
                       <img
-                        src={animal.images?.[0] || 'https://via.placeholder.com/400x300?text=No+Image'}
+                        src={optimizeImageUrl(animal.images?.[0], 400, 300)}
                         alt={animal.name || animal.breed}
                         className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                       />

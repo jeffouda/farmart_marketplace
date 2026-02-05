@@ -82,4 +82,6 @@ const LivestockCard = ({ livestock }) => {
   );
 };
 
+export { optimizeImageUrl };
+
 export default LivestockCard;
