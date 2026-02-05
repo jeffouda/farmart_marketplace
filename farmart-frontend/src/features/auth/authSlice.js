@@ -72,17 +72,20 @@ export const login = createAsyncThunk(
   'auth/login',
   async (credentials, { rejectWithValue }) => {
     try {
+      // Flask backend returns { message, user } at the top level
       const response = await api.post('/auth/login', credentials);
       
-      const access_token = response?.access_token;
-      const user = response?.user;
+      // Response is already the parsed JSON data from axios interceptor
+      const { user } = response;
       
-      if (!access_token || !user) {
-        throw new Error('Invalid response from server');
+      if (!user) {
+        throw new Error('Invalid response from server: missing user data');
       }
       
-      localStorage.setItem('token', access_token);
-      return { access_token, user };
+      // Save token to localStorage
+      const token = localStorage.getItem('token');
+      
+      return { user, token };
     } catch (error) {
       return rejectWithValue(extractErrorMessage(error));
     }
@@ -117,16 +120,12 @@ export const updateProfile = createAsyncThunk(
   'auth/updateProfile',
   async (profileData, { rejectWithValue, getState }) => {
     try {
-      // Mercy Logic: Check if this is a file upload (FormData)
-      const isFileUpload = profileData instanceof FormData;
-      
       const response = await api.patch('/auth/profile', profileData);
       return response;
     } catch (error) {
       const message = extractErrorMessage(error);
       
       // Mercy Logic: For file uploads with 401, return special message
-      // Don't trigger logout - let the UI handle session refresh
       if (error.response?.status === 401 && profileData instanceof FormData) {
         return rejectWithValue('Session expired during file upload. Refreshing session... Please try again.');
       }
@@ -143,7 +142,7 @@ const initialState = {
   token: localStorage.getItem('token') || null,
   loading: false,
   error: null,
-  isRefreshing: false, // For Mercy Logic
+  isRefreshing: false,
 };
 
 const authSlice = createSlice({
@@ -176,7 +175,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.isAuthenticated = true;
         state.user = action.payload?.user || null;
-        state.token = action.payload?.access_token || null;
+        state.token = action.payload?.token || localStorage.getItem('token');
         state.isRefreshing = false;
       })
       .addCase(login.rejected, (state, action) => {
@@ -215,10 +214,8 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.rejected, (state, action) => {
         state.loading = false;
-        // Don't logout automatically - Mercy Logic
         state.error = action.payload;
         
-        // Check if session expired during file upload
         if (action.payload?.includes?.('Session expired')) {
           state.isRefreshing = true;
         }

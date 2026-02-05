@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../store/hooks';
 import { login } from '../features/auth/authSlice';
+import { toast } from 'react-toastify';
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -24,26 +25,41 @@ const Login = () => {
 
     try {
       const result = await dispatch(login(formData)).unwrap();
-      navigateBasedOnRole(result.user.role);
+      console.log('Login success:', result);
+      
+      // Navigate based on role
+      const role = result.user?.role;
+      console.log('User role:', role);
+      
+      toast.success(`Welcome back, ${result.user?.first_name || 'User'}!`);
+      navigateBasedOnRole(role);
+      
     } catch (err) {
+      console.error('Login error:', err);
       setError(err.message || err || 'Login failed. Please check your credentials.');
+      toast.error(err.message || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   const navigateBasedOnRole = (role) => {
+    // Debug: log available routes
+    console.log('Navigating based on role:', role);
+    
     switch (role) {
       case 'farmer':
-        navigate('/dashboard');
+        navigate('/farmer/dashboard');
         break;
       case 'buyer':
-        navigate('/dashboard');
+        navigate('/buyer/dashboard');
         break;
       case 'admin':
-        navigate('/admin');
+        navigate('/admin/dashboard');
         break;
       default:
+        // Default fallback - go to home or general dashboard
+        console.log('Unknown role, defaulting to /dashboard');
         navigate('/dashboard');
     }
   };
