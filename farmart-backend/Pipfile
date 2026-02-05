@@ -13,11 +13,12 @@ requests = "*"
 flask-cors = "*"
 ipython = "*"
 flask-restful = "*"
-flask-marshmallow = "*"
-marshmallow-sqlalchemy = "*"
 flask-migrate = "*"
 flask-limiter = "*"
 markupsafe = "*"
+flask-marshmallow = "*"
+marshmallow-sqlalchemy = "*"
+
 [dev-packages]
 
 [requires]
