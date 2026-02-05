@@ -11,3 +11,11 @@ def trigger_stk():
 
     if not phone:
         return jsonify({"error": "Phone number is required"}), 
+
+    result = send_stk_push(phone, amount)
+
+    if "ResponseCode" in result and result["ResponseCode"] == "0":
+        return jsonify({"status": "success", "data": result}), 200
+    else:
+        return jsonify({"status": "error", "message": result}), 400
+    
