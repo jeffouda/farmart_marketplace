@@ -26,3 +26,11 @@ def send_stk_push(phone_number, amount):
     timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
     passkey = current_app.config['MPESA_PASSKEY']
     shortcode = current_app.config['MPESA_SHORTCODE']
+
+    # Password = Base64(Shortcode + Passkey + Timestamp)
+    password_str = shortcode + passkey + timestamp
+    password = base64.b64encode(password_str.encode()).decode('utf-8')
+
+    url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+    headers = {"Authorization": f"Bearer {access_token}"}
+    
