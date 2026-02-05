@@ -47,3 +47,9 @@ def send_stk_push(phone_number, amount):
         "AccountReference": "FarmartPayment",
         "TransactionDesc": "Livestock Purchase"
     }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        return response.json()
+    except Exception as e:
+        return {"error": str(e)}
