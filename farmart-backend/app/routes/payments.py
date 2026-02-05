@@ -19,3 +19,10 @@ def trigger_stk():
     else:
         return jsonify({"status": "error", "message": result}), 400
     
+@payments_bp.route('/callback', methods=['POST'])
+def mpesa_callback():
+    # This is where Safaricom sends the payment results
+    data = request.get_json()
+    print("M-Pesa Callback Received:", data)
+    # logic to update escrow_records goes here later
+    return jsonify({"ResultCode": 0, "ResultDesc": "Success"})
