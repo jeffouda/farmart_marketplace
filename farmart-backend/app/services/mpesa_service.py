@@ -22,3 +22,7 @@ def send_stk_push(phone_number, amount):
     access_token = get_access_token()
     if not access_token:
         return {"error": "Failed to authenticate with Safaricom"}
+
+    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+    passkey = current_app.config['MPESA_PASSKEY']
+    shortcode = current_app.config['MPESA_SHORTCODE']
