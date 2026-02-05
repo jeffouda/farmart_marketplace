@@ -8,3 +8,6 @@ def trigger_stk():
     data = request.get_json()
     phone = data.get('phoneNumber')
     amount = data.get('amount', 1)
+
+    if not phone:
+        return jsonify({"error": "Phone number is required"}), 
