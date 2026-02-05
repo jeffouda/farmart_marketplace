@@ -187,6 +187,9 @@ class Livestock(db.Model):
     age_months = db.Column(db.Integer)
     price = db.Column(db.Float, nullable=False)
     location = db.Column(db.String(100), nullable=False)
+    description = db.Column(db.Text)
+    images = db.Column(db.JSON, default=list)  # List of image URLs
+    health_notes = db.Column(db.Text)
 
     is_available = db.Column(db.Boolean, default=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -200,11 +203,16 @@ class Livestock(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "farmer_id": self.farmer_id,
             "animal_type": self.animal_type,
             "breed": self.breed,
             "weight": self.weight,
+            "age_months": self.age_months,
             "price": self.price,
             "location": self.location,
+            "description": self.description,
+            "images": self.images or [],
+            "health_notes": self.health_notes,
             "is_available": self.is_available,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
