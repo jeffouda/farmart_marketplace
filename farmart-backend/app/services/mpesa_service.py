@@ -10,3 +10,10 @@ def get_access_token():
     consumer_key = current_app.config['MPESA_CONSUMER_KEY']
     consumer_secret = current_app.config['MPESA_CONSUMER_SECRET']
     
+    try:
+        response = requests.get(url, auth=(consumer_key, consumer_secret))
+        response.raise_for_status()
+        return response.json().get('access_token')
+    except Exception as e:
+        print(f"Error getting token: {e}")
+        return None
