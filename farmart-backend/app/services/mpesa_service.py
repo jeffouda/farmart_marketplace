@@ -34,3 +34,16 @@ def send_stk_push(phone_number, amount):
     url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
     headers = {"Authorization": f"Bearer {access_token}"}
     
+    payload = {
+        "BusinessShortCode": shortcode,
+        "Password": password,
+        "Timestamp": timestamp,
+        "TransactionType": "CustomerPayBillOnline",
+        "Amount": int(amount),
+        "PartyA": phone_number,
+        "PartyB": shortcode,
+        "PhoneNumber": phone_number,
+        "CallBackURL": current_app.config['MPESA_CALLBACK_URL'],
+        "AccountReference": "FarmartPayment",
+        "TransactionDesc": "Livestock Purchase"
+    }
