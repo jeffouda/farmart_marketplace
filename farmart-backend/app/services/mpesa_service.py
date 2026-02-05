@@ -17,3 +17,8 @@ def get_access_token():
     except Exception as e:
         print(f"Error getting token: {e}")
         return None
+    
+def send_stk_push(phone_number, amount):
+    access_token = get_access_token()
+    if not access_token:
+        return {"error": "Failed to authenticate with Safaricom"}
