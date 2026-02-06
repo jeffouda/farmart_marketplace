@@ -21,6 +21,11 @@ from app.schemas import user_register_schema, user_login_schema, user_schema
 from app.extensions import limiter
 
 import re  # For XSS prevention
+import logging
+
+# Setup debug logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Blueprint for backward compatibility
 auth_bp = Blueprint("auth", __name__)
@@ -204,17 +209,63 @@ class AuthMe(Resource):
 class AuthProfile(Resource):
     """Resource for updating user profile."""
 
+    method_decorators = []
+    if limiter:
+        method_decorators = [limiter.limit("10 per minute")]
+
     @jwt_required()
     def patch(self):
-        current_user_id = get_jwt_identity()
+        # ENHANCED DEBUG: Comprehensive logging for JWT token reception
+        logger.info("=" * 70)
+        logger.info("AUTH PROFILE PATCH REQUEST - DETAILED DEBUG")
+        logger.info("=" * 70)
+        
+        # Cookie information
+        logger.info(f"[COOKIES] All cookies received: {list(request.cookies.keys())}")
+        logger.info(f"[COOKIES] access_token_cookie present: {'access_token_cookie' in request.cookies}")
+        
+        # Header information
+        auth_header = request.headers.get("Authorization", "NOT PRESENT")
+        logger.info(f"[HEADERS] Authorization header: {auth_header[:50] if auth_header != 'NOT PRESENT' else auth_header}")
+        logger.info(f"[HEADERS] Content-Type: {request.content_type}")
+        logger.info(f"[HEADERS] Origin: {request.headers.get('Origin', 'NOT PRESENT')}")
+        logger.info(f"[HEADERS] All request headers: {dict(request.headers)}")
+        
+        try:
+            current_user_id = get_jwt_identity()
+            logger.info(f"[JWT] Successfully extracted identity: {current_user_id}")
+        except Exception as e:
+            logger.error(f"[JWT] Failed to extract identity: {e}")
+            return {"error": f"Token validation failed: {e}"}, 401
+        
         user = User.query.get(current_user_id)
+        logger.info(f"[DB] User lookup result: {user.id if user else 'NOT FOUND'}")
 
         if not user:
             return {"error": "User not found"}, 404
 
-        data = request.get_json() or {}
+        # Handle multipart form data (file uploads) or JSON
+        if request.content_type and "multipart/form-data" in request.content_type:
+            logger.info("[UPLOAD] Processing multipart form data")
+            data = request.form.to_dict()
+            # Handle file upload
+            if "image" in request.files:
+                from app.utils.cloudinary import upload_profile_image
 
-        # Handle profile image removal
+                file = request.files["image"]
+                logger.info(f"[UPLOAD] File received: {file.filename if file else 'No file'}")
+                if file and file.filename:
+                    image_url = upload_profile_image(file)
+                    logger.info(f"[UPLOAD] Upload result: {image_url}")
+                    if image_url:
+                        user.profile_image_url = image_url
+                        if user.profile:
+                            user.profile.profile_image_url = image_url
+        else:
+            logger.info("[JSON] Processing JSON request")
+            data = request.get_json() or {}
+
+        # Handle profile image removal (JSON only)
         if data.get("profile_image_url") is None:
             user.profile_image_url = None
             if user.profile:
@@ -236,15 +287,13 @@ class AuthProfile(Resource):
                 if user.profile:
                     setattr(user.profile, field, data[field])
 
-        try:
-            db.session.commit()
-            return {
-                "message": "Profile updated successfully",
-                "user": user_schema.dump(user),
-            }, 200
-        except Exception as e:
-            db.session.rollback()
-            return {"error": "Could not update profile", "details": str(e)}, 500
+        db.session.commit()
+        logger.info("[SUCCESS] Profile updated successfully")
+
+        return {
+            "message": "Profile updated successfully",
+            "user": user_schema.dump(user),
+        }, 200
 
 
 # Register resources with the API

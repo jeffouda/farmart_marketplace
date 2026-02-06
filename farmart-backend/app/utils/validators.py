@@ -71,12 +71,19 @@ def validate_livestock_data(data):
 
 
 def validate_order_data(data):
-    """Validate order creation data."""
+    """Validate order creation data with error codes."""
     errors = []
 
     if "livestock_id" not in data:
-        errors.append("Livestock ID is required")
+        errors.append({
+            "code": 4001, 
+            "message": "Livestock ID is required"
+        })
+        
     if "shipping_address" not in data or not data["shipping_address"]:
-        errors.append("Shipping address is required")
+        errors.append({
+            "code": 4002, 
+            "message": "Shipping address is required"
+        })
 
     return errors
