@@ -226,10 +226,10 @@ class Livestock(db.Model):
     price_per_kg = db.Column(db.Float)  # Optional: price per kg
     original_price = db.Column(db.Float)  # Original price for showing discounts
     location = db.Column(db.String(100), nullable=False)
-    image_url = db.Column(db.String(500))  # Primary image URL
-    images = db.Column(db.Text)  # JSON array of additional image URLs
-
-    description = db.Column(db.Text)  # Selling pitch / reason for sale
+<<<<<<< HEAD
+    description = db.Column(db.Text)
+    images = db.Column(db.JSON, default=list)  # List of image URLs
+    health_notes = db.Column(db.Text)
     reason_for_sale = db.Column(db.String(100))  # Breeding, Slaughter, Dairy, etc.
     health_certified = db.Column(db.Boolean, default=False)
 
@@ -248,6 +248,7 @@ class Livestock(db.Model):
     def to_dict(self):
         return {
             "id": self.id,
+            "farmer_id": self.farmer_id,
             "animal_type": self.animal_type,
             "breed": self.breed,
             "gender": self.gender,
@@ -256,11 +257,14 @@ class Livestock(db.Model):
             "price": float(self.price),
             "price_per_kg": float(self.price_per_kg) if self.price_per_kg else None,
             "location": self.location,
-            "image_url": self.image_url,
-            "images": self.images.split(",") if self.images else [],
             "description": self.description,
+            "images": self.images or [],
+            "health_notes": self.health_notes,
             "reason_for_sale": self.reason_for_sale,
             "health_certified": self.health_certified,
+            "is_available": self.is_available,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
             "is_available": self.is_available,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }

@@ -1,3 +1,11 @@
+# Node
 node_modules/
 farmart-frontend/node_modules/
-farmart-frontend/
+
+# Python
+__pycache__/
+*.pyc
+
+# Env
+.env
+venv/
