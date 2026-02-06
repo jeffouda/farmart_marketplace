@@ -21,6 +21,7 @@ from app.services.escrow_manager import EscrowManager
 
 buyer_bp = Blueprint("buyer", __name__)
 
+#buyer routes 
 
 @buyer_bp.route("/search", methods=["GET"])
 def search_livestock():
