@@ -215,36 +215,40 @@ class Livestock(db.Model):
     __tablename__ = "livestock"
 
     id = db.Column(db.Integer, primary_key=True)
-    farmer_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
 
-    animal_type = db.Column(db.String(50), nullable=False)  # Cow, Goat, Sheep
-    breed = db.Column(db.String(100))
-    gender = db.Column(db.String(20))  # male, female
-    weight = db.Column(db.Float, nullable=False)
-    age_months = db.Column(db.Integer)
-    price = db.Column(db.Float, nullable=False)
-    price_per_kg = db.Column(db.Float)  # Optional: price per kg
-    original_price = db.Column(db.Float)  # Original price for showing discounts
-    location = db.Column(db.String(100), nullable=False)
-<<<<<<< HEAD
-    description = db.Column(db.Text)
-    images = db.Column(db.JSON, default=list)  # List of image URLs
-    health_notes = db.Column(db.Text)
-    reason_for_sale = db.Column(db.String(100))  # Breeding, Slaughter, Dairy, etc.
-    health_certified = db.Column(db.Boolean, default=False)
-
-    is_available = db.Column(db.Boolean, default=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(
-        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    farmer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id"),
+        nullable=False
     )
 
-    # FIXED: back_populates must match the attribute name in the User model ('listings')
-    farmer = db.relationship("User", back_populates="listings")
-    
-    # Relationship for orders targeting this specific animal
-    orders = db.relationship("Order", back_populates="livestock")
+    animal_type = db.Column(db.String(50), nullable=False)
+    breed = db.Column(db.String(50), nullable=True)
+    gender = db.Column(db.String(20), nullable=True)
 
+    weight = db.Column(db.Float, nullable=True)
+    age_months = db.Column(db.Integer, nullable=True)
+
+    price = db.Column(db.Numeric(10, 2), nullable=False)
+    price_per_kg = db.Column(db.Numeric(10, 2), nullable=True)
+
+    location = db.Column(db.String(100), nullable=True)
+    description = db.Column(db.Text, nullable=True)
+
+    images = db.Column(db.JSON, nullable=True)
+
+    health_notes = db.Column(db.Text, nullable=True)
+    reason_for_sale = db.Column(db.String(255), nullable=True)
+
+    health_certified = db.Column(db.Boolean, default=False)
+    is_available = db.Column(db.Boolean, default=True)
+
+    created_at = db.Column(db.DateTime, default=db.func.now())
+
+    # 🔹 Relationships
+    farmer = db.relationship("User", backref="livestock")
+
+    # 🔹 Serializer
     def to_dict(self):
         return {
             "id": self.id,
@@ -265,9 +269,7 @@ class Livestock(db.Model):
             "is_available": self.is_available,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
-            "is_available": self.is_available,
-            "created_at": self.created_at.isoformat() if self.created_at else None
-        }
+
 
 
 # ==================== Order Models ====================
